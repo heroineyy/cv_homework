@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, simpledialog
 import cv2
 import numpy as np
 from PIL import Image, ImageTk
@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 class ImageViewer:
     def __init__(self, root):
+
 
         self.root = root
         self.root.title("图像浏览器")
@@ -29,6 +30,7 @@ class ImageViewer:
         self.original_image = None
         self.opencv_histogram = None
         self.custom_histogram = None
+        self.filter_size = None
         # self.histogram_image = None
         self.photo_left = None
         self.photo_right = None
@@ -383,8 +385,12 @@ class ImageViewer:
         self.update_canvas()
 
     def filter_image(self, filter_type='lowpass'):
-        self.canvas_left.delete("all")
         self.canvas_right.delete("all")
+        # 创建一个简单的对话框来输入 filter_size
+        self.filter_size = simpledialog.askinteger("输入滤波器大小", "请输入滤波器大小：", initialvalue=30)
+        if self.filter_size is None:
+            self.filter_size = 30  # 默认值
+        self.canvas_left.delete("all")
         # 进行傅里叶变换
         f_transform = np.fft.fft2(self.original_image, axes=(0, 1))
         f_transform_shifted = np.fft.fftshift(f_transform, axes=(0, 1))
@@ -396,10 +402,10 @@ class ImageViewer:
         # 创建频域滤波器
         if filter_type == 'lowpass':
             mask = np.zeros((rows, cols, channels), np.uint8)
-            mask[crow - 30:crow + 30, ccol - 30:ccol + 30, :] = 1
+            mask[crow - self.filter_size:crow + self.filter_size, ccol - self.filter_size:ccol + self.filter_size, :] = 1
         elif filter_type == 'highpass':
             mask = np.ones((rows, cols, channels), np.uint8)
-            mask[crow - 30:crow + 30, ccol - 30:ccol + 30, :] = 0
+            mask[crow - self.filter_size:crow + self.filter_size, ccol - self.filter_size:ccol + self.filter_size, :] = 0
 
         # 应用滤波器
         f_transform_shifted_filtered = f_transform_shifted * mask
