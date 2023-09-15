@@ -23,7 +23,7 @@ def calculate_opencv_histogram(image):
 
 
 # 读取图像
-image = cv2.imread(r'D:\deeplearning\cv_homework\horses.jpg')
+image = cv2.imread(r'/horses.jpg')
 
 # 计算灰度直方图
 custom_histogram = calculate_custom_histogram(image)

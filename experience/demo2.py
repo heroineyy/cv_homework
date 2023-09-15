@@ -23,7 +23,7 @@ def custom_histogram_equalization(image):
 
 
 # 读取图像
-image = cv2.imread(r'D:\deeplearning\cv_homework\horses.jpg')
+image = cv2.imread(r'/horses.jpg')
 
 # 应用自定义直方图均衡
 equalized_image = custom_histogram_equalization(image)

@@ -41,7 +41,7 @@ def find_baboon_nose_thresholds(image_path):
         return None
 
 # 使用示例
-input_image_path = r'D:\deeplearning\cv_homework\data\baboon.png'
+input_image_path = r'/data/baboon.png'
 thresholds = find_baboon_nose_thresholds(input_image_path)
 
 if thresholds is not None:
