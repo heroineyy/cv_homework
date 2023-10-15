@@ -124,7 +124,7 @@ class ImageViewer:
             for i in range(h, height - h):
                 for j in range(w, width - w):
                     result[i, j] = np.min(image[i - h:i + h + 1, j - w:j + w + 1] * kernel)
-
+            # opencv实现腐蚀
             self.right_image = cv2.erode(image, kernel, iterations=1)
             self.image = result
 
@@ -144,6 +144,7 @@ class ImageViewer:
             for i in range(h, height - h):
                 for j in range(w, width - w):
                     result[i, j] = np.max(image[i - h:i + h + 1, j - w:j + w + 1] * kernel)
+            # opencv实现膨胀
             self.right_image = cv2.dilate(image, kernel, iterations=1)
             self.image = result
             self.update_canvas()
