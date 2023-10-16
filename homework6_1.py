@@ -1,46 +1,62 @@
-import numpy as np
 import cv2
+import numpy as np
+import matplotlib.pyplot as plt
 
-# 加载特征点
-matches = np.loadtxt('matches.txt', delimiter=',')
-pts1 = matches[:, :2]
-pts2 = matches[:, 2:]
+# 读取两张图像
+image1 = cv2.imread('data/1.jpg')
+image2 = cv2.imread('data/2.jpg')
 
+# 使用ORB等方法提取特征点和匹配
+orb = cv2.ORB_create()
+kp1, des1 = orb.detectAndCompute(image1, None)
+kp2, des2 = orb.detectAndCompute(image2, None)
 
-def estimate_fundamental_matrix_ransac(pts1, pts2, threshold, max_iterations):
-    best_F = None
-    best_inliers = []
+bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+matches = bf.match(des1, des2)
+matches = sorted(matches, key=lambda x: x.distance)
 
-    for _ in range(max_iterations):
-        # 随机选择8个点用于基础矩阵估计
-        random_indices = np.random.choice(len(pts1), 8, replace=False)
-        sampled_pts1 = pts1[random_indices]
-        sampled_pts2 = pts2[random_indices]
+# 提取特征点的坐标
+points1 = np.float32([kp1[m.queryIdx].pt for m in matches])
+points2 = np.float32([kp2[m.trainIdx].pt for m in matches])
 
-        # 用随机选择的点估计基础矩阵
-        F, mask = cv2.findFundamentalMat(sampled_pts1, sampled_pts2, cv2.FM_RANSAC)
+# 设置不同的RANSAC参数
+ransac_parameters = [
+    (3.0, 1000, 0.99),
+    (5.0, 1000, 0.99),
+    (3.0, 2000, 0.99)
+]
 
-        # 计算内点数量
-        inliers = np.where(mask.ravel() == 1)[0]
+# 创建一个 Matplotlib 图形窗口
+plt.figure(figsize=(15, 10))
 
-        # 如果内点数量大于当前最佳，则更新最佳结果
-        if len(inliers) > len(best_inliers):
-            best_F = F
-            best_inliers = inliers
+for i, (threshold, max_trials, confidence) in enumerate(ransac_parameters):
+    # 使用RANSAC估计基础矩阵
+    fundamental_matrix, inliers = cv2.findFundamentalMat(
+        points1, points2, cv2.FM_RANSAC, threshold, confidence, max_trials)
 
-    # 用所有内点重新估计一次基础矩阵
-    best_pts1 = pts1[best_inliers]
-    best_pts2 = pts2[best_inliers]
-    best_F, _ = cv2.findFundamentalMat(best_pts1, best_pts2, cv2.FM_8POINT)
+    # 从匹配中筛选出内点
+    points1_inliers = points1[inliers.ravel() == 1]
+    points2_inliers = points2[inliers.ravel() == 1]
 
-    return best_F, best_inliers
+    # 绘制匹配和内点
+    matches_inliers = [matches[j] for j in range(len(matches)) if inliers[j] == 1]
+    image_with_matches = cv2.drawMatches(image1, kp1, image2, kp2, matches, outImg=None)
+    image_with_inliers = cv2.drawMatches(image1, kp1, image2, kp2, matches_inliers, outImg=None)
 
+    # 创建子图
+    plt.subplot(3, 2, 2*i+1)
+    plt.imshow(image_with_matches)
+    plt.title('All Matches (Threshold={})'.format(threshold), color='red')
+    plt.subplot(3, 2, 2*i+2)
+    plt.imshow(image_with_inliers)
+    plt.title('Inliers (Threshold={})'.format(threshold), color='red')
 
-thresholds = [1.0, 1.5, 2.0]  # 不同的阈值
-max_iterations = 1000
+    # 打印基础矩阵和内点数
+    print("RANSAC Parameters: Threshold={}, Max Trials={}, Confidence={}".format(
+        threshold, max_trials, confidence))
+    print("Estimated Fundamental Matrix:")
+    print(fundamental_matrix)
+    print("Number of Inliers:", len(points1_inliers))
 
-for threshold in thresholds:
-    F, inliers = estimate_fundamental_matrix_ransac(pts1, pts2, threshold, max_iterations)
-    print(f"Threshold: {threshold}, Number of inliers: {len(inliers)}")
-
-    # 在这里可以根据需要进一步处理基础矩阵 F
+# 显示 Matplotlib 图形窗口
+plt.show()
